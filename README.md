@@ -1,6 +1,6 @@
-# Backend (Fullstack) Interview for Pserson
+# Backend (Fullstack) Interview for Paerson
 
-This is the solution proposed for the Paerson Backend position.
+This is the solution proposed for the Paerson's Backend position.
 
 It consist on a simple Nodejs backend app and a Preact frontend app.
 
@@ -26,6 +26,11 @@ Place yourself in the root directory and do: `docker compose up -d --build`
 >⚠️ Filling the database using the script requires you to have jq installed
 After the services are up you may load some data into the database so you can quickly see all the features running: `sh fill_database.sh`
 
+### Running tests (backend only)
+
+Just place yourself on the backend directory and do: `npm run test`
+>⚠️ Running anything in your local machine besides docker requires you to install npm dependencies
+
 ### Description / Behavior
 
 The app has three main routes: Home, List, New
@@ -45,11 +50,10 @@ src/redis.js its just a database wrapper that exposes CURD methods. All database
 
 For testing I choosed mocha as a test runner and sinon for stubs and spies. Nodejs assert library was enough for basic tests. I've included a file `a_lot_of_samples` to showcase many more scenarios
 
+I did unit testing for the redis wrapper. But I've done some e2e test for the whole application. Not every frontend behavior is tested in e2e, but it is easy to extend.
+
 ```
 back/
-├── dist
-│   ├── index.js
-│   └── redis.js
 ├── Dockerfile
 ├── package.json
 ├── package-lock.json
@@ -74,11 +78,10 @@ src/app.js routes the pages and sets the basic layout.
 src/pages/ contains all components that load upon location changes.
 src/components/ contains all other components that either solve a particular problem or encapsulate some behavior.
 
+I also have experience testing FE applications but it is out of scope here.
+
 ```
 front/
-├── dist
-│   ├── assets
-│   └── index.html
 ├── Dockerfile
 ├── index.html
 ├── package.json
