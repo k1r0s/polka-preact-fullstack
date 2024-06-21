@@ -1,0 +1,671 @@
+/*
+* This file is a sample of e2e tests from a private project owned by me
+*/
+
+import assert from "assert";
+import request from "request-promise-native";
+
+import MapPayload from "../map.sample.json";
+import Turn0Payload from "../turn0.sample.json";
+import Turn1Payload from "../turn1.sample.json";
+
+const VARS = {};
+VARS.subject_user_id = null;
+VARS.subject_user_email = null;
+VARS.subject_user_pass = null;
+VARS.sample_user_id = null;
+VARS.subject_user_session_id = null;
+VARS.sample_user_session_id = null;
+VARS.sample_map_id = null;
+VARS.sample_match_id = null;
+VARS.subject_unit_id = null;
+VARS.sample_unit_id = null;
+
+describe("Create user", () => {
+  let payload;
+  let options;
+
+  beforeEach(() => {
+    payload = {};
+    payload.name =                    "Sample User";
+    payload.email =                   "sampleuser@test.es";
+    payload.pass =                    "123456";
+    payload.repass =                  "123456";
+
+    options = {};
+    options.method =                  "POST";
+    options.uri =                     "http://localhost:3000/users";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("should create an user", () => {
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("name" in response.body);
+      assert("email" in response.body);
+      assert(response.body.email === "sampleuser@test.es");
+      assert("_id" in response.body);
+      assert("pass" in response.body === false);
+
+      VARS.subject_user_id = response.body._id;
+      VARS.subject_user_email = payload.email;
+      VARS.subject_user_pass = payload.pass;
+    })
+  })
+
+  it("should raise an exception if requested email already exists", () => {
+    payload.name = "Another User";
+    payload.email = "sampleuser@test.es";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 409);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "InUseError");
+    })
+  })
+
+  it("create another user for testing purposes", () => {
+    payload.name = "Another User";
+    payload.email = "anotheruser@test.es";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("name" in response.body);
+      assert("email" in response.body);
+      assert(response.body.email === "anotheruser@test.es");
+      assert("_id" in response.body);
+      assert("pass" in response.body === false);
+
+      VARS.sample_user_id = response.body._id;
+    })
+  })
+
+  it("should raise an exception if request body is missing any required param: ['name, email, pass, repass'] > name", () => {
+    delete payload.name;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("should raise an exception if request body is missing any required param: ['name, email, pass, repass'] > email", () => {
+    delete payload.email;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("should raise an exception if request body is missing any required param: ['name, email, pass, repass'] > pass", () => {
+    delete payload.pass;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("should raise an exception if request body is missing any required param: ['name, email, pass, repass'] > repass", () => {
+    delete payload.repass;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("should raise an exception if provided password does not meet requirements", () => {
+    payload.pass = "12";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequirementNotMeetError");
+    })
+  })
+
+  it("should raise an exception if provided 'prepeated password' does not match with pass", () => {
+    payload.pass = "123456";
+    payload.repass = "abcd";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequirementNotMeetError");
+    })
+  })
+
+  it("should raise an exception if provided email isn't a valid email string", () => {
+    payload.email = "asdasd";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "EmailValidationError");
+    })
+  })
+})
+
+describe("Create session", () => {
+  let payload;
+  let options;
+
+  beforeEach(() => {
+    payload = {};
+    payload.email =                   "wrongemail@email.com"
+    payload.pass =                    "1112131"
+
+    options = {};
+    options.method =                  "POST";
+    options.uri =                     "http://localhost:3000/sessions";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("should raise an error when attempting to post a session with missing info", () => {
+    delete payload.email;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("should raise an error when attempting to post a session with invalid pass", () => {
+    payload.pass = "12";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequirementNotMeetError");
+    })
+  })
+
+  it("should raise an error when attempting to post a session with invalid email", () => {
+    payload.email = "asdasda";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "EmailValidationError");
+    })
+  })
+
+  it("should raise an error when attempting log in with wrong credentials", () => {
+
+    return request(options).then(response => {
+      assert(response.statusCode === 401);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "InvalidCredentialsError");
+    })
+  })
+
+  it("should create a session", async () => {
+    payload.email = VARS.subject_user_email;
+    payload.pass = VARS.subject_user_pass;
+
+    await request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("expiration" in response.body);
+      assert("userId" in response.body);
+      assert("_id" in response.body);
+
+      VARS.subject_user_session_id = response.body._id;
+    })
+
+    payload.email = "anotheruser@test.es";
+    payload.pass =  "123456";
+
+    await request(options).then(response => {
+      VARS.sample_user_session_id = response.body._id;
+    })
+  })
+})
+
+describe("Edit user", () => {
+  let payload;
+  let options;
+
+  beforeEach(() => {
+    payload = {};
+
+    options = {};
+    options.method =                  "PUT";
+    options.uri =                     "http://localhost:3000/users";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("should reject unauth requests", () => {
+
+    return request(options).then(response => {
+      assert(response.statusCode === 401);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "NotCreatedError");
+    })
+  })
+
+  it("should reject wrong sessions", () => {
+    options.headers = {};
+    options.headers["x-session"] = "aaa";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 401);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "NotCreatedError");
+    })
+  })
+
+  it("shouldn't be able to edit password nor _id properties", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    payload._id = "aasdas1231231";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert("_id" in response.body);
+      assert(response.body._id !== payload._id);
+    })
+  })
+
+  it("should be able to edit name or email (or any other prop that isn't _id or pass)", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    payload.email = "yetanother@email.com";
+    payload.name = "Fatboy slim";
+    payload.misc = "mail is fake btw";
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert("email" in response.body);
+      assert(response.body.email === "yetanother@email.com");
+      assert("name" in response.body);
+      assert(response.body.name === "Fatboy slim");
+      assert("misc" in response.body);
+      assert(response.body.misc === "mail is fake btw");
+
+      VARS.subject_user_email = "yetanother@email.com";
+    })
+  })
+})
+
+describe("Read users", () => {
+  let options;
+  beforeEach(() => {
+    options = {};
+    options.method =                  "GET";
+    options.uri =                     "http://localhost:3000/users";
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("Should be able to retrieve a list of existing users", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert(Array.isArray(response.body));
+      const subject_user = response.body.find(user => user._id === VARS.subject_user_id);
+      assert(subject_user.email === VARS.subject_user_email);
+    })
+  })
+
+  it("Should be able to make advanced queries to find specific users", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+    options.qs = {};
+    options.qs.filter = "_id,eq," + VARS.sample_user_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert(Array.isArray(response.body));
+      const sample_user = response.body[0];
+      assert(sample_user._id === VARS.sample_user_id);
+    })
+  })
+})
+
+describe("Create map", () => {
+  let options;
+  let payload;
+  beforeEach(() => {
+    payload = { ...MapPayload };
+
+    options = {};
+    options.method =                  "POST";
+    options.uri =                     "http://localhost:3000/maps";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("Should be able to create maps", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("_id" in response.body);
+      assert("slots" in response.body);
+      assert(response.body.slots === 2);
+
+      VARS.sample_map_id = response.body._id;
+    })
+  })
+
+  it("exception is raised when some fields are missing", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    delete payload.terrains;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("exception is raised when some validations are not meet", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    payload.name = 1;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequirementNotMeetError");
+    })
+  })
+})
+
+describe("Read maps", () => {
+  let options;
+  let payload;
+  beforeEach(() => {
+
+    options = {};
+    options.method =                  "GET";
+    options.uri =                     "http://localhost:3000/maps";
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("Should be able to see all maps available", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert(Array.isArray(response.body));
+    })
+  })
+})
+
+describe("Edit map", () => {
+  let options;
+  let payload;
+  beforeEach(() => {
+    payload = {};
+    payload.name = "Some other"
+
+    options = {};
+    options.method =                  "PUT";
+    options.uri =                     "http://localhost:3000/maps";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("[MISSING VALIDATIONS] Should be able to edit map contents", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    options.qs = {};
+    options.qs._id = VARS.sample_map_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert("_id" in response.body);
+      assert("name" in response.body);
+      assert(response.body.name === "Some other");
+    })
+  })
+})
+
+describe("Create match", () => {
+  let options;
+  let payload;
+  beforeEach(() => {
+    payload = {};
+    payload.players = [VARS.sample_user_id]
+    payload.mapId = VARS.sample_map_id;
+
+    options = {};
+    options.method =                  "POST";
+    options.uri =                     "http://localhost:3000/matches";
+    options.body =                    payload;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("Must raise an exception if some fields are missing", () => {
+    delete payload.players;
+
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "RequiredFieldsError");
+    })
+  })
+
+  it("Must raise an exception if player amount exceeds map slots", () => {
+    payload.players = ["too", "much", "players"];
+
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "PlayerAmountError");
+    })
+  })
+
+  it("Must raise an exception if map or player references are wrong", () => {
+    payload.mapId = "wrong map"
+
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 400);
+      assert("error" in response.body);
+      assert("message" in response.body);
+      assert(response.body.error === "ReferenceNotFound");
+    })
+  })
+
+  it("Should be able to create matchs for two players", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("players" in response.body);
+      assert(response.body.players.includes(VARS.sample_user_id));
+      assert(response.body.players.includes(VARS.subject_user_id));
+      assert("turn" in response.body);
+      assert(response.body.turn === VARS.subject_user_id);
+      assert("map" in response.body);
+      assert(typeof response.body.map === "object");
+      assert("units" in response.body);
+      assert(Array.isArray(response.body.units));
+
+      VARS.sample_match_id = response.body._id;
+      const playerUnit = response.body.units.find(unit => unit.player === VARS.subject_user_id);
+      const opponentUnit = response.body.units.find(unit => unit.player === VARS.sample_user_id);
+      VARS.subject_unit_id = playerUnit._id;
+      VARS.sample_unit_id = opponentUnit._id;
+    })
+  })
+
+})
+
+describe("Read (own) matches", () => {
+  let options;
+  beforeEach(() => {
+    options = {};
+    options.method =                  "GET";
+    options.uri =                     "http://localhost:3000/matches";
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it("Should be able to read all player's match", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 200);
+      assert(Array.isArray(response.body));
+      assert(response.body.every(match => match.players.includes(VARS.subject_user_id)));
+    })
+  })
+})
+
+describe("Update match (create turn)", () => {
+  let options;
+  let moveTurnPayload;
+  let attackTurnPayload;
+  beforeEach(() => {
+    options = {};
+    moveTurnPayload = [...Turn0Payload];
+    attackTurnPayload = [...Turn1Payload];
+
+    options.method =                  "POST";
+    options.uri =                     `http://localhost:3000/matches/${VARS.sample_match_id}/turns`;
+    options.json =                    true;
+    options.resolveWithFullResponse = true;
+    options.simple =                  false;
+  })
+
+  it.skip("TODO VALIDATIONS", () => {
+    return true
+  });
+
+  it("Should be able to push turns into the match > MOV", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    options.body = moveTurnPayload;
+    const phase = moveTurnPayload[0];
+    phase.unitId = VARS.subject_unit_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("players" in response.body);
+      assert(response.body.players.includes(VARS.sample_user_id));
+      assert(response.body.players.includes(VARS.subject_user_id));
+      assert("turn" in response.body);
+      assert(response.body.turn === VARS.sample_user_id);
+      assert("map" in response.body);
+      assert(typeof response.body.map === "object");
+      assert("units" in response.body);
+      assert(Array.isArray(response.body.units));
+      assert("history" in response.body);
+      assert(Array.isArray(response.body.history));
+
+      const movedUnit = response.body.units.find(unit => unit._id === VARS.subject_unit_id);
+      assert.deepEqual(movedUnit.pos, [2, 3]);
+    })
+  })
+
+  it("Must raise an exception if player tries to bypass opponent's turn", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.subject_user_session_id;
+
+    options.body = attackTurnPayload;
+    const phase = attackTurnPayload[0];
+    phase.attackerId = VARS.subject_unit_id;
+    phase.defenderId = VARS.sample_unit_id;
+
+    return request(options).catch(response => {
+      assert(response.statusCode === 400);
+      assert(response.body.error === "NotPlayerTurnError")
+    })
+  })
+
+  it("Should be able to push turns into the match > ATK", () => {
+    options.headers = {};
+    options.headers["x-session"] = VARS.sample_user_session_id;
+
+    options.body = attackTurnPayload;
+    const phase = attackTurnPayload[0];
+    phase.attackerId = VARS.sample_unit_id;
+    phase.defenderId = VARS.subject_unit_id;
+
+    return request(options).then(response => {
+      assert(response.statusCode === 201);
+      assert("players" in response.body);
+      assert(response.body.players.includes(VARS.sample_user_id));
+      assert(response.body.players.includes(VARS.subject_user_id));
+      assert("turn" in response.body);
+      assert(response.body.turn === VARS.subject_user_id);
+      assert("map" in response.body);
+      assert(typeof response.body.map === "object");
+      assert("units" in response.body);
+      assert(Array.isArray(response.body.units));
+      assert("history" in response.body);
+      assert(Array.isArray(response.body.history));
+      const defender = response.body.units.find(unit => unit._id === VARS.subject_unit_id);
+      const attacker = response.body.units.find(unit => unit._id === VARS.sample_unit_id);
+      assert(Math.max(defender.hp, attacker.hp) === attacker.hp);
+    })
+  })
+})
